@@ -1,21 +1,76 @@
-import { SpotService } from '../../services/spot.service';
-import { createMockSpot } from '../utils/testUtils';
-import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
-import { PrismaClient } from '@prisma/client';
+// Create mock at module scope BEFORE any imports that use it
+const mockPrisma = {
+  user: {
+    findUnique: jest.fn(),
+  },
+  spot: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+  },
+  favorite: {
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    delete: jest.fn(),
+  },
+  $queryRaw: jest.fn(),
+};
 
-// Create prisma mock at module scope
-const prismaMock = mockDeep<PrismaClient>() as unknown as DeepMockProxy<PrismaClient>;
-
-// Mock prisma - must be before any imports that use it
+// Mock prisma
 jest.mock('../../config/database', () => ({
   __esModule: true,
-  default: prismaMock,
+  default: mockPrisma,
 }));
 
 // Mock geolib
 jest.mock('geolib', () => ({
   getDistance: jest.fn().mockReturnValue(5000), // 5km
 }));
+
+// NOW import the service after mocks are set up
+import { SpotService } from '../../services/spot.service';
+
+// Helper functions
+const createMockSpot = (overrides: Partial<any> = {}) => ({
+  id: 'test-spot-id',
+  name: 'Test Spot',
+  nameEn: 'Test Spot',
+  description: 'A test spot description',
+  aiSummary: 'AI generated summary',
+  country: '中国',
+  province: '浙江省',
+  city: '杭州市',
+  district: '西湖区',
+  address: 'Test Address',
+  latitude: 30.25,
+  longitude: 120.17,
+  categoryId: 'category-id',
+  tags: ['自然', '徒步'],
+  themes: ['户外'],
+  rating: 4.5,
+  reviewCount: 100,
+  viewCount: 1000,
+  favoriteCount: 50,
+  crowdLevel: 'low',
+  crowdData: null,
+  openingHours: null,
+  ticketPrice: 0,
+  ticketInfo: null,
+  suggestedDuration: 120,
+  bestSeasons: ['春季', '秋季'],
+  bestTimeOfDay: ['早晨', '傍晚'],
+  coverImage: 'https://example.com/image.jpg',
+  images: [],
+  source: 'manual',
+  sourceUrl: null,
+  verified: true,
+  verifierId: null,
+  status: 'active',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  publishedAt: new Date(),
+  ...overrides,
+});
 
 describe('SpotService', () => {
   let spotService: SpotService;
@@ -40,7 +95,7 @@ describe('SpotService', () => {
         createMockSpot({ id: 'spot-3', name: '云栖竹径', rating: 4.6, crowdLevel: 'medium' }),
       ];
 
-      prismaMock.$queryRaw.mockResolvedValueOnce(mockSpots.map(spot => ({
+      mockPrisma.$queryRaw.mockResolvedValueOnce(mockSpots.map(spot => ({
         ...spot,
         distance: 5.0,
       })));
@@ -67,7 +122,7 @@ describe('SpotService', () => {
         createMockSpot({ id: 'spot-1', name: '景点1' }),
       ];
 
-      prismaMock.$queryRaw.mockResolvedValueOnce(mockSpots.map(spot => ({
+      mockPrisma.$queryRaw.mockResolvedValueOnce(mockSpots.map(spot => ({
         ...spot,
         distance: 3.5,
       })));
@@ -91,7 +146,7 @@ describe('SpotService', () => {
         createMockSpot({ id: 'spot-3', crowdLevel: 'medium' }),
       ];
 
-      prismaMock.$queryRaw.mockResolvedValueOnce(mockSpots.map(spot => ({
+      mockPrisma.$queryRaw.mockResolvedValueOnce(mockSpots.map(spot => ({
         ...spot,
         distance: 5.0,
       })));
@@ -121,7 +176,7 @@ describe('SpotService', () => {
         createMockSpot({ id: 'spot-2', name: '景点2' }),
       ];
 
-      prismaMock.$queryRaw
+      mockPrisma.$queryRaw
         .mockResolvedValueOnce(mockSpots.map(spot => ({
           ...spot,
           distance: 5.0,
@@ -166,7 +221,7 @@ describe('SpotService', () => {
         { ...createMockSpot(), distance: 3.5 },
       ];
 
-      prismaMock.$queryRaw
+      mockPrisma.$queryRaw
         .mockResolvedValueOnce(mockSpots)
         .mockResolvedValueOnce([{ count: BigInt(1) }]);
 
@@ -185,10 +240,10 @@ describe('SpotService', () => {
       const spotId = 'spot-123';
       const mockSpot = createMockSpot({ id: spotId });
 
-      prismaMock.spot.findUnique.mockResolvedValue(mockSpot as any);
-      prismaMock.spot.update.mockResolvedValue(mockSpot as any);
-      prismaMock.$queryRaw.mockResolvedValue([]);
-      prismaMock.favorite.findFirst.mockResolvedValue(null);
+      mockPrisma.spot.findUnique.mockResolvedValue(mockSpot as any);
+      mockPrisma.spot.update.mockResolvedValue(mockSpot as any);
+      mockPrisma.$queryRaw.mockResolvedValue([]);
+      mockPrisma.favorite.findFirst.mockResolvedValue(null);
 
       // Act
       const result = await spotService.getById(spotId);
@@ -201,7 +256,7 @@ describe('SpotService', () => {
     // TEST 8: 景点不存在时抛出错误
     it('should throw error when spot not found', async () => {
       // Arrange
-      prismaMock.spot.findUnique.mockResolvedValue(null);
+      mockPrisma.spot.findUnique.mockResolvedValue(null);
 
       // Act & Assert
       await expect(spotService.getById('non-existent')).rejects.toThrow();
@@ -213,16 +268,16 @@ describe('SpotService', () => {
       const spotId = 'spot-123';
       const mockSpot = createMockSpot({ id: spotId });
 
-      prismaMock.spot.findUnique.mockResolvedValue(mockSpot as any);
-      prismaMock.spot.update.mockResolvedValue(mockSpot as any);
-      prismaMock.$queryRaw.mockResolvedValue([]);
-      prismaMock.favorite.findFirst.mockResolvedValue(null);
+      mockPrisma.spot.findUnique.mockResolvedValue(mockSpot as any);
+      mockPrisma.spot.update.mockResolvedValue(mockSpot as any);
+      mockPrisma.$queryRaw.mockResolvedValue([]);
+      mockPrisma.favorite.findFirst.mockResolvedValue(null);
 
       // Act
       await spotService.getById(spotId);
 
       // Assert
-      expect(prismaMock.spot.update).toHaveBeenCalledWith({
+      expect(mockPrisma.spot.update).toHaveBeenCalledWith({
         where: { id: spotId },
         data: { viewCount: { increment: 1 } },
       });
@@ -235,10 +290,10 @@ describe('SpotService', () => {
       const userId = 'user-123';
       const mockSpot = createMockSpot({ id: spotId });
 
-      prismaMock.spot.findUnique.mockResolvedValue(mockSpot as any);
-      prismaMock.spot.update.mockResolvedValue(mockSpot as any);
-      prismaMock.$queryRaw.mockResolvedValue([]);
-      prismaMock.favorite.findFirst.mockResolvedValue({ id: 'fav-123' } as any);
+      mockPrisma.spot.findUnique.mockResolvedValue(mockSpot as any);
+      mockPrisma.spot.update.mockResolvedValue(mockSpot as any);
+      mockPrisma.$queryRaw.mockResolvedValue([]);
+      mockPrisma.favorite.findFirst.mockResolvedValue({ id: 'fav-123' } as any);
 
       // Act
       const result = await spotService.getById(spotId, userId);
@@ -257,10 +312,10 @@ describe('SpotService', () => {
         { id: 'nearby-2', name: '附近景点2', rating: 4.3, distance: 3.8 },
       ];
 
-      prismaMock.spot.findUnique.mockResolvedValue(mockSpot as any);
-      prismaMock.spot.update.mockResolvedValue(mockSpot as any);
-      prismaMock.$queryRaw.mockResolvedValue(nearbySpots);
-      prismaMock.favorite.findFirst.mockResolvedValue(null);
+      mockPrisma.spot.findUnique.mockResolvedValue(mockSpot as any);
+      mockPrisma.spot.update.mockResolvedValue(mockSpot as any);
+      mockPrisma.$queryRaw.mockResolvedValue(nearbySpots);
+      mockPrisma.favorite.findFirst.mockResolvedValue(null);
 
       // Act
       const result = await spotService.getById(spotId);
@@ -280,7 +335,7 @@ describe('SpotService', () => {
         createMockSpot({ name: '杭州灵隐寺', city: '杭州市' }),
       ];
 
-      prismaMock.$queryRaw.mockResolvedValue(mockSpots);
+      mockPrisma.$queryRaw.mockResolvedValue(mockSpots);
 
       // Act
       const result = await spotService.search(keyword, {}, 1, 20);
@@ -305,7 +360,7 @@ describe('SpotService', () => {
         createMockSpot({ id: `spot-${i}` })
       );
 
-      prismaMock.$queryRaw.mockResolvedValue(mockSpots);
+      mockPrisma.$queryRaw.mockResolvedValue(mockSpots);
 
       // Act
       const result = await spotService.search('景点', {}, 1, 20);
@@ -324,10 +379,10 @@ describe('SpotService', () => {
       const spotId = 'spot-456';
       const mockSpot = createMockSpot({ id: spotId });
 
-      prismaMock.spot.findUnique.mockResolvedValue(mockSpot as any);
-      prismaMock.favorite.findFirst.mockResolvedValue(null);
-      prismaMock.favorite.create.mockResolvedValue({ id: 'fav-123', userId, spotId } as any);
-      prismaMock.spot.update.mockResolvedValue(mockSpot as any);
+      mockPrisma.spot.findUnique.mockResolvedValue(mockSpot as any);
+      mockPrisma.favorite.findFirst.mockResolvedValue(null);
+      mockPrisma.favorite.create.mockResolvedValue({ id: 'fav-123', userId, spotId } as any);
+      mockPrisma.spot.update.mockResolvedValue(mockSpot as any);
 
       // Act
       const result = await spotService.toggleFavorite(userId, spotId);
@@ -344,10 +399,10 @@ describe('SpotService', () => {
       const mockSpot = createMockSpot({ id: spotId });
       const existingFavorite = { id: 'fav-123', userId, spotId };
 
-      prismaMock.spot.findUnique.mockResolvedValue(mockSpot as any);
-      prismaMock.favorite.findFirst.mockResolvedValue(existingFavorite as any);
-      prismaMock.favorite.delete.mockResolvedValue(existingFavorite as any);
-      prismaMock.spot.update.mockResolvedValue(mockSpot as any);
+      mockPrisma.spot.findUnique.mockResolvedValue(mockSpot as any);
+      mockPrisma.favorite.findFirst.mockResolvedValue(existingFavorite as any);
+      mockPrisma.favorite.delete.mockResolvedValue(existingFavorite as any);
+      mockPrisma.spot.update.mockResolvedValue(mockSpot as any);
 
       // Act
       const result = await spotService.toggleFavorite(userId, spotId);
@@ -359,7 +414,7 @@ describe('SpotService', () => {
     // TEST 17: 景点不存在时抛出错误
     it('should throw error when spot not found', async () => {
       // Arrange
-      prismaMock.spot.findUnique.mockResolvedValue(null);
+      mockPrisma.spot.findUnique.mockResolvedValue(null);
 
       // Act & Assert
       await expect(spotService.toggleFavorite('user-123', 'non-existent')).rejects.toThrow();

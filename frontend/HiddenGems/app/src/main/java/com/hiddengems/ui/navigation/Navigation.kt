@@ -22,6 +22,7 @@ import com.hiddengems.ui.profile.ProfileScreen
 import com.hiddengems.ui.spot.SpotDetailScreen
 import com.hiddengems.ui.auth.LoginScreen
 import com.hiddengems.ui.auth.RegisterScreen
+import com.hiddengems.ui.ai.AIPlannerScreen
 
 sealed class Screen(
     val route: String,

@@ -1,5 +1,23 @@
-import { AIService, ItineraryParams } from '../../services/ai.service';
-import { prismaMock, createMockSpot, createMockUser, resetPrismaMock } from '../utils/testUtils';
+// Create mock at module scope BEFORE any imports that use it
+const mockPrisma = {
+  user: {
+    findUnique: jest.fn(),
+  },
+  spot: {
+    findMany: jest.fn(),
+  },
+  behavior: {
+    count: jest.fn(),
+    create: jest.fn(),
+  },
+  $queryRaw: jest.fn(),
+};
+
+// Mock prisma
+jest.mock('../../config/database', () => ({
+  __esModule: true,
+  default: mockPrisma,
+}));
 
 // Mock OpenAI
 const mockChatCompletion = {
@@ -44,12 +62,6 @@ jest.mock('openai', () => ({
   })),
 }));
 
-// Mock prisma
-jest.mock('../../config/database', () => ({
-  __esModule: true,
-  default: prismaMock,
-}));
-
 // Mock config
 jest.mock('../../config', () => ({
   config: {
@@ -60,13 +72,35 @@ jest.mock('../../config', () => ({
   },
 }));
 
+// NOW import the service after mocks are set up
+import { AIService, ItineraryParams } from '../../services/ai.service';
+
+// Helper functions
+const createMockUser = (overrides: Partial<any> = {}) => ({
+  id: 'test-user-id',
+  email: 'test@example.com',
+  passwordHash: '$2a$10$hashedpassword',
+  nickname: 'Test User',
+  membershipType: 'free',
+  ...overrides,
+});
+
+const createMockSpot = (overrides: Partial<any> = {}) => ({
+  id: 'test-spot-id',
+  name: 'Test Spot',
+  rating: 4.5,
+  crowdLevel: 'low',
+  latitude: 30.25,
+  longitude: 120.17,
+  ...overrides,
+});
+
 describe('AIService', () => {
   let aiService: AIService;
 
   beforeEach(() => {
-    resetPrismaMock();
-    aiService = new AIService();
     jest.clearAllMocks();
+    aiService = new AIService();
   });
 
   describe('generateItinerary', () => {
@@ -85,10 +119,10 @@ describe('AIService', () => {
       };
 
       const mockUser = createMockUser({ id: userId, membershipType: 'pro' });
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.$queryRaw.mockResolvedValue([createMockSpot()]);
-      prismaMock.behavior.count.mockResolvedValue(0);
-      prismaMock.behavior.create.mockResolvedValue({} as any);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.$queryRaw.mockResolvedValue([createMockSpot()]);
+      mockPrisma.behavior.count.mockResolvedValue(0);
+      mockPrisma.behavior.create.mockResolvedValue({} as any);
 
       // Act
       const result = await aiService.generateItinerary(userId, params);
@@ -110,8 +144,8 @@ describe('AIService', () => {
       };
 
       const mockUser = createMockUser({ id: userId, membershipType: 'free' });
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.behavior.count.mockResolvedValue(10); // Over limit
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.behavior.count.mockResolvedValue(10); // Over limit
 
       // Act & Assert
       await expect(aiService.generateItinerary(userId, params)).rejects.toThrow();
@@ -130,16 +164,16 @@ describe('AIService', () => {
       };
 
       const mockUser = createMockUser({ id: userId, membershipType: 'pro' });
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.$queryRaw.mockResolvedValue([createMockSpot()]);
-      prismaMock.behavior.count.mockResolvedValue(0);
-      prismaMock.behavior.create.mockResolvedValue({} as any);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.$queryRaw.mockResolvedValue([createMockSpot()]);
+      mockPrisma.behavior.count.mockResolvedValue(0);
+      mockPrisma.behavior.create.mockResolvedValue({} as any);
 
       // Act
       await aiService.generateItinerary(userId, params);
 
       // Assert
-      expect(prismaMock.behavior.create).toHaveBeenCalledWith({
+      expect(mockPrisma.behavior.create).toHaveBeenCalledWith({
         data: {
           userId,
           action: 'ai_itinerary',
@@ -161,9 +195,9 @@ describe('AIService', () => {
       };
 
       const mockUser = createMockUser({ id: userId, membershipType: 'pro' });
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.$queryRaw.mockResolvedValue([createMockSpot()]);
-      prismaMock.behavior.create.mockResolvedValue({} as any);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.$queryRaw.mockResolvedValue([createMockSpot()]);
+      mockPrisma.behavior.create.mockResolvedValue({} as any);
 
       // Act - should not throw even with high count
       const result = await aiService.generateItinerary(userId, params);
@@ -184,10 +218,10 @@ describe('AIService', () => {
       };
 
       const mockUser = createMockUser({ id: userId, membershipType: 'pro' });
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.spot.findMany.mockResolvedValue([createMockSpot()]);
-      prismaMock.behavior.count.mockResolvedValue(0);
-      prismaMock.behavior.create.mockResolvedValue({} as any);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.spot.findMany.mockResolvedValue([createMockSpot()]);
+      mockPrisma.behavior.count.mockResolvedValue(0);
+      mockPrisma.behavior.create.mockResolvedValue({} as any);
 
       // Act
       const result = await aiService.chat(userId, message, context);
@@ -204,10 +238,10 @@ describe('AIService', () => {
       const message = '推荐景点';
 
       const mockUser = createMockUser({ id: userId, membershipType: 'pro' });
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.spot.findMany.mockResolvedValue([createMockSpot({ id: 'spot-1' })]);
-      prismaMock.behavior.count.mockResolvedValue(0);
-      prismaMock.behavior.create.mockResolvedValue({} as any);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.spot.findMany.mockResolvedValue([createMockSpot({ id: 'spot-1' })]);
+      mockPrisma.behavior.count.mockResolvedValue(0);
+      mockPrisma.behavior.create.mockResolvedValue({} as any);
 
       // Act
       const result = await aiService.chat(userId, message, {});
@@ -235,10 +269,10 @@ describe('AIService', () => {
       const sessionId = 'existing-session-123';
 
       const mockUser = createMockUser({ id: userId, membershipType: 'pro' });
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.spot.findMany.mockResolvedValue([]);
-      prismaMock.behavior.count.mockResolvedValue(0);
-      prismaMock.behavior.create.mockResolvedValue({} as any);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.spot.findMany.mockResolvedValue([]);
+      mockPrisma.behavior.count.mockResolvedValue(0);
+      mockPrisma.behavior.create.mockResolvedValue({} as any);
 
       // Act
       const result = await aiService.chat(userId, message, {}, sessionId);
@@ -255,8 +289,8 @@ describe('AIService', () => {
       const userId = 'user-123';
       const mockUser = createMockUser({ id: userId, membershipType: 'free' });
 
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.behavior.count.mockResolvedValue(3);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.behavior.count.mockResolvedValue(3);
 
       // Act
       const result = await aiService.getUsage(userId);
@@ -273,7 +307,7 @@ describe('AIService', () => {
       const userId = 'user-pro';
       const mockUser = createMockUser({ id: userId, membershipType: 'pro' });
 
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       // Act
       const result = await aiService.getUsage(userId);
@@ -291,8 +325,8 @@ describe('AIService', () => {
       const userId = 'user-free';
       const mockUser = createMockUser({ id: userId, membershipType: 'free' });
 
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.behavior.count.mockResolvedValue(0);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.behavior.count.mockResolvedValue(0);
 
       // Act
       const result = await aiService.getUsage(userId);
@@ -308,8 +342,8 @@ describe('AIService', () => {
       const userId = 'user-free';
       const mockUser = createMockUser({ id: userId, membershipType: 'free' });
 
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.behavior.count.mockResolvedValue(5); // Over limit for chat
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.behavior.count.mockResolvedValue(5); // Over limit for chat
 
       // Act
       const result = await aiService.getUsage(userId);

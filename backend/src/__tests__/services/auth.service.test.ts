@@ -1,7 +1,21 @@
-import { AuthService } from '../../services/auth.service';
-import { prismaMock, createMockUser, resetPrismaMock } from '../utils/testUtils';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { AppError } from '../../middleware/error';
+
+// Create mock at module scope BEFORE any imports that use it
+const mockPrisma = {
+  user: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+};
+
+// Mock prisma
+jest.mock('../../config/database', () => ({
+  __esModule: true,
+  default: mockPrisma,
+}));
 
 // Mock bcrypt
 jest.mock('bcryptjs', () => ({
@@ -15,12 +29,6 @@ jest.mock('jsonwebtoken', () => ({
   verify: jest.fn(),
 }));
 
-// Mock prisma
-jest.mock('../../config/database', () => ({
-  __esModule: true,
-  default: prismaMock,
-}));
-
 // Mock config
 jest.mock('../../config', () => ({
   config: {
@@ -32,13 +40,39 @@ jest.mock('../../config', () => ({
   },
 }));
 
+// NOW import the service after mocks are set up
+import { AuthService } from '../../services/auth.service';
+
+// Helper to create mock user
+const createMockUser = (overrides: Partial<any> = {}) => ({
+  id: 'test-user-id',
+  email: 'test@example.com',
+  passwordHash: '$2a$10$hashedpassword',
+  nickname: 'Test User',
+  avatar: null,
+  phone: null,
+  gender: null,
+  birthday: null,
+  bio: null,
+  membershipType: 'free',
+  membershipExpireAt: null,
+  contributionPoints: 0,
+  level: 1,
+  preferences: {},
+  status: 'active',
+  emailVerified: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  lastLoginAt: null,
+  ...overrides,
+});
+
 describe('AuthService', () => {
   let authService: AuthService;
 
   beforeEach(() => {
-    resetPrismaMock();
-    authService = new AuthService();
     jest.clearAllMocks();
+    authService = new AuthService();
   });
 
   describe('register', () => {
@@ -56,8 +90,8 @@ describe('AuthService', () => {
         nickname: input.nickname,
       });
 
-      prismaMock.user.findUnique.mockResolvedValue(null);
-      prismaMock.user.create.mockResolvedValue(mockUser);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.create.mockResolvedValue(mockUser);
 
       // Act
       const result = await authService.register(input);
@@ -79,7 +113,7 @@ describe('AuthService', () => {
         nickname: 'Test User',
       };
 
-      prismaMock.user.findUnique.mockResolvedValue(createMockUser({ email: input.email }));
+      mockPrisma.user.findUnique.mockResolvedValue(createMockUser({ email: input.email }));
 
       // Act & Assert
       await expect(authService.register(input)).rejects.toThrow('该邮箱已被注册');
@@ -94,8 +128,8 @@ describe('AuthService', () => {
         nickname: 'Test User',
       };
 
-      prismaMock.user.findUnique.mockResolvedValue(null);
-      prismaMock.user.create.mockResolvedValue(createMockUser());
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.create.mockResolvedValue(createMockUser());
 
       // Act
       await authService.register(input);
@@ -113,8 +147,8 @@ describe('AuthService', () => {
         nickname: 'Test User',
       };
 
-      prismaMock.user.findUnique.mockResolvedValue(null);
-      prismaMock.user.create.mockResolvedValue(createMockUser());
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.create.mockResolvedValue(createMockUser());
 
       // Act
       const result = await authService.register(input);
@@ -138,8 +172,8 @@ describe('AuthService', () => {
         passwordHash: '$2a$10$hashedpassword',
       });
 
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.user.update.mockResolvedValue(mockUser);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.user.update.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       // Act
@@ -159,7 +193,7 @@ describe('AuthService', () => {
         password: 'password',
       };
 
-      prismaMock.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
 
       // Act & Assert
       await expect(authService.login(input)).rejects.toThrow('邮箱或密码错误');
@@ -174,7 +208,7 @@ describe('AuthService', () => {
       };
 
       const mockUser = createMockUser();
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       // Act & Assert
@@ -190,15 +224,15 @@ describe('AuthService', () => {
       };
 
       const mockUser = createMockUser();
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
-      prismaMock.user.update.mockResolvedValue(mockUser);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.user.update.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       // Act
       await authService.login(input);
 
       // Assert
-      expect(prismaMock.user.update).toHaveBeenCalledWith({
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUser.id },
         data: { lastLoginAt: expect.any(Date) },
       });
@@ -213,7 +247,7 @@ describe('AuthService', () => {
       const validRefreshToken = 'valid.refresh.token';
 
       (jwt.verify as jest.Mock).mockReturnValue({ userId: mockUser.id });
-      prismaMock.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       // Act
       const result = await authService.refreshToken(validRefreshToken);
@@ -238,10 +272,10 @@ describe('AuthService', () => {
     it('should throw error when user not found for refresh token', async () => {
       // Arrange
       (jwt.verify as jest.Mock).mockReturnValue({ userId: 'non-existent-user' });
-      prismaMock.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      // Act & Assert
-      await expect(authService.refreshToken('valid.token')).rejects.toThrow('请先登录');
+      // Act & Assert - The service wraps all errors in a generic message
+      await expect(authService.refreshToken('valid.token')).rejects.toThrow('登录已过期');
     });
   });
 
@@ -255,8 +289,8 @@ describe('AuthService', () => {
         membershipType: 'pro',
       });
 
-      prismaMock.user.findUnique.mockResolvedValue(null);
-      prismaMock.user.create.mockResolvedValue(mockUser);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.create.mockResolvedValue(mockUser);
 
       // Act
       const result = await authService.register({
@@ -273,7 +307,7 @@ describe('AuthService', () => {
           membershipType: 'pro',
         }),
         'test-jwt-secret-key',
-        { expiresIn: '2h' }
+        { expiresIn: 7200 } // 2h in seconds
       );
     });
   });

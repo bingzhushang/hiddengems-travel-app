@@ -1,19 +1,79 @@
-import { ItineraryService } from '../../services/itinerary.service';
-import { prismaMock, createMockItinerary, createMockSpot, createMockUser, resetPrismaMock } from '../utils/testUtils';
+// Create mock at module scope BEFORE any imports that use it
+const mockPrisma = {
+  itinerary: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
+  },
+  itineraryItem: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    delete: jest.fn(),
+  },
+  spot: {
+    findUnique: jest.fn(),
+  },
+};
 
 // Mock prisma
 jest.mock('../../config/database', () => ({
   __esModule: true,
-  default: prismaMock,
+  default: mockPrisma,
 }));
+
+// NOW import the service after mocks are set up
+import { ItineraryService } from '../../services/itinerary.service';
+
+// Helper functions
+const createMockItinerary = (overrides: Partial<any> = {}) => ({
+  id: 'test-itinerary-id',
+  userId: 'test-user-id',
+  title: 'Test Itinerary',
+  description: 'Test Description',
+  coverImage: null,
+  startDate: new Date('2026-04-01'),
+  endDate: new Date('2026-04-02'),
+  daysCount: 2,
+  destination: '杭州',
+  destinationLat: 30.25,
+  destinationLng: 120.17,
+  budgetLevel: 'medium',
+  estimatedBudget: 500,
+  travelStyle: ['自然'],
+  transportation: 'self_drive',
+  isAiGenerated: true,
+  aiParams: {},
+  viewCount: 0,
+  favoriteCount: 0,
+  copyCount: 0,
+  status: 'draft',
+  isPublic: true, // Default to public so tests can access without userId
+  offlineDataUrl: null,
+  offlineSize: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  publishedAt: null,
+  items: [],
+  ...overrides,
+});
+
+const createMockSpot = (overrides: Partial<any> = {}) => ({
+  id: 'test-spot-id',
+  name: 'Test Spot',
+  rating: 4.5,
+  coverImage: 'https://example.com/image.jpg',
+  ...overrides,
+});
 
 describe('ItineraryService', () => {
   let itineraryService: ItineraryService;
 
   beforeEach(() => {
-    resetPrismaMock();
-    itineraryService = new ItineraryService();
     jest.clearAllMocks();
+    itineraryService = new ItineraryService();
   });
 
   describe('create', () => {
@@ -33,7 +93,7 @@ describe('ItineraryService', () => {
         title: data.title,
       });
 
-      prismaMock.itinerary.create.mockResolvedValue(mockItinerary);
+      mockPrisma.itinerary.create.mockResolvedValue(mockItinerary);
 
       // Act
       const result = await itineraryService.create(userId, data);
@@ -54,18 +114,16 @@ describe('ItineraryService', () => {
         destination: '杭州',
       };
 
-      prismaMock.itinerary.create.mockImplementation(async (args) => {
-        return createMockItinerary({
-          ...args.data,
-          daysCount: 3,
-        } as any);
-      });
+      mockPrisma.itinerary.create.mockResolvedValue(createMockItinerary({
+        ...data,
+        daysCount: 3,
+      } as any));
 
       // Act
       const result = await itineraryService.create(userId, data);
 
       // Assert
-      expect(prismaMock.itinerary.create).toHaveBeenCalledWith(
+      expect(mockPrisma.itinerary.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             daysCount: 3,
@@ -95,13 +153,14 @@ describe('ItineraryService', () => {
       const itineraryId = 'itinerary-123';
       const mockItinerary = createMockItinerary({ id: itineraryId });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary);
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary);
 
       // Act
       const result = await itineraryService.getById(itineraryId);
 
       // Assert
-      expect(result.id).toBe(itineraryId);
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(itineraryId);
     });
 
     // TEST 5: 包含行程项目
@@ -116,19 +175,20 @@ describe('ItineraryService', () => {
         ],
       };
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary as any);
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary as any);
 
       // Act
       const result = await itineraryService.getById(itineraryId);
 
       // Assert
-      expect(result.items).toHaveLength(2);
+      expect(result).not.toBeNull();
+      expect(result!.items).toHaveLength(2);
     });
 
     // TEST 6: 行程不存在时返回null
     it('should return null when itinerary not found', async () => {
       // Arrange
-      prismaMock.itinerary.findUnique.mockResolvedValue(null);
+      mockPrisma.itinerary.findUnique.mockResolvedValue(null);
 
       // Act
       const result = await itineraryService.getById('non-existent');
@@ -148,7 +208,7 @@ describe('ItineraryService', () => {
         isPublic: false,
       });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary);
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary);
 
       // Act & Assert
       await expect(
@@ -167,8 +227,8 @@ describe('ItineraryService', () => {
         createMockItinerary({ userId, title: '行程2' }),
       ];
 
-      prismaMock.itinerary.findMany.mockResolvedValue(mockItineraries);
-      prismaMock.itinerary.count.mockResolvedValue(2);
+      mockPrisma.itinerary.findMany.mockResolvedValue(mockItineraries);
+      mockPrisma.itinerary.count.mockResolvedValue(2);
 
       // Act
       const result = await itineraryService.getByUserId(userId, 1, 10);
@@ -181,8 +241,8 @@ describe('ItineraryService', () => {
     it('should paginate correctly', async () => {
       // Arrange
       const userId = 'user-123';
-      prismaMock.itinerary.findMany.mockResolvedValue([]);
-      prismaMock.itinerary.count.mockResolvedValue(25);
+      mockPrisma.itinerary.findMany.mockResolvedValue([]);
+      mockPrisma.itinerary.count.mockResolvedValue(25);
 
       // Act
       const result = await itineraryService.getByUserId(userId, 2, 10);
@@ -196,14 +256,14 @@ describe('ItineraryService', () => {
     it('should filter by status', async () => {
       // Arrange
       const userId = 'user-123';
-      prismaMock.itinerary.findMany.mockResolvedValue([]);
-      prismaMock.itinerary.count.mockResolvedValue(0);
+      mockPrisma.itinerary.findMany.mockResolvedValue([]);
+      mockPrisma.itinerary.count.mockResolvedValue(0);
 
       // Act
       await itineraryService.getByUserId(userId, 1, 10, 'draft');
 
       // Assert
-      expect(prismaMock.itinerary.findMany).toHaveBeenCalledWith(
+      expect(mockPrisma.itinerary.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             status: 'draft',
@@ -226,8 +286,8 @@ describe('ItineraryService', () => {
         userId,
       });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary);
-      prismaMock.itinerary.update.mockResolvedValue({
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary);
+      mockPrisma.itinerary.update.mockResolvedValue({
         ...mockItinerary,
         ...updateData,
       });
@@ -251,7 +311,7 @@ describe('ItineraryService', () => {
         userId: 'user-123',
       });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary);
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary);
 
       // Act & Assert
       await expect(
@@ -280,9 +340,9 @@ describe('ItineraryService', () => {
 
       const mockSpot = createMockSpot({ id: 'spot-456' });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary);
-      prismaMock.spot.findUnique.mockResolvedValue(mockSpot);
-      prismaMock.itineraryItem.create.mockResolvedValue({
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary);
+      mockPrisma.spot.findUnique.mockResolvedValue(mockSpot);
+      mockPrisma.itineraryItem.create.mockResolvedValue({
         id: 'item-123',
         ...itemData,
         itineraryId,
@@ -310,9 +370,9 @@ describe('ItineraryService', () => {
       const mockItinerary = createMockItinerary({ id: itineraryId, userId });
       const mockSpot = createMockSpot({ id: 'spot-456', name: '九溪十八涧' });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary);
-      prismaMock.spot.findUnique.mockResolvedValue(mockSpot);
-      prismaMock.itineraryItem.create.mockResolvedValue({
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary);
+      mockPrisma.spot.findUnique.mockResolvedValue(mockSpot);
+      mockPrisma.itineraryItem.create.mockResolvedValue({
         id: 'item-123',
         ...itemData,
         itineraryId,
@@ -338,15 +398,15 @@ describe('ItineraryService', () => {
       const mockItinerary = createMockItinerary({ id: itineraryId, userId });
       const mockItem = { id: itemId, itineraryId };
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary);
-      prismaMock.itineraryItem.findUnique.mockResolvedValue(mockItem as any);
-      prismaMock.itineraryItem.delete.mockResolvedValue(mockItem as any);
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary);
+      mockPrisma.itineraryItem.findUnique.mockResolvedValue(mockItem as any);
+      mockPrisma.itineraryItem.delete.mockResolvedValue(mockItem as any);
 
       // Act
       await itineraryService.removeItem(itineraryId, itemId, userId);
 
       // Assert
-      expect(prismaMock.itineraryItem.delete).toHaveBeenCalledWith({
+      expect(mockPrisma.itineraryItem.delete).toHaveBeenCalledWith({
         where: { id: itemId },
       });
     });
@@ -365,8 +425,8 @@ describe('ItineraryService', () => {
         status: 'draft',
       });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary);
-      prismaMock.itinerary.update.mockResolvedValue({
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary);
+      mockPrisma.itinerary.update.mockResolvedValue({
         ...mockItinerary,
         status: 'published',
         isPublic: true,
@@ -398,20 +458,20 @@ describe('ItineraryService', () => {
         ],
       });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary as any);
-      prismaMock.itinerary.create.mockResolvedValue({
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary as any);
+      mockPrisma.itinerary.create.mockResolvedValue({
         ...mockItinerary,
         id: 'new-itinerary-id',
         userId,
       } as any);
-      prismaMock.itinerary.update.mockResolvedValue({} as any);
+      mockPrisma.itinerary.update.mockResolvedValue({} as any);
 
       // Act
       const result = await itineraryService.copy(itineraryId, userId);
 
       // Assert
       expect(result).toBeDefined();
-      expect(prismaMock.itinerary.create).toHaveBeenCalled();
+      expect(mockPrisma.itinerary.create).toHaveBeenCalled();
     });
 
     // TEST 18: 增加复制次数
@@ -426,15 +486,15 @@ describe('ItineraryService', () => {
         items: [],
       });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary as any);
-      prismaMock.itinerary.create.mockResolvedValue(mockItinerary as any);
-      prismaMock.itinerary.update.mockResolvedValue(mockItinerary as any);
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary as any);
+      mockPrisma.itinerary.create.mockResolvedValue(mockItinerary as any);
+      mockPrisma.itinerary.update.mockResolvedValue(mockItinerary as any);
 
       // Act
       await itineraryService.copy(itineraryId, userId);
 
       // Assert
-      expect(prismaMock.itinerary.update).toHaveBeenCalledWith({
+      expect(mockPrisma.itinerary.update).toHaveBeenCalledWith({
         where: { id: itineraryId },
         data: { copyCount: { increment: 1 } },
       });
@@ -453,14 +513,14 @@ describe('ItineraryService', () => {
         userId,
       });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary);
-      prismaMock.itinerary.delete.mockResolvedValue(mockItinerary);
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary);
+      mockPrisma.itinerary.delete.mockResolvedValue(mockItinerary);
 
       // Act
       await itineraryService.delete(itineraryId, userId);
 
       // Assert
-      expect(prismaMock.itinerary.delete).toHaveBeenCalledWith({
+      expect(mockPrisma.itinerary.delete).toHaveBeenCalledWith({
         where: { id: itineraryId },
       });
     });
@@ -476,7 +536,7 @@ describe('ItineraryService', () => {
         userId: 'user-123',
       });
 
-      prismaMock.itinerary.findUnique.mockResolvedValue(mockItinerary);
+      mockPrisma.itinerary.findUnique.mockResolvedValue(mockItinerary);
 
       // Act & Assert
       await expect(

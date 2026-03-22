@@ -13,7 +13,7 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
     const { email, password, nickname } = req.body;
 
     if (!email || !password || !nickname) {
-      throw new AppError({ code: 20001, message: '请填写完整信息' });
+      throw new AppError(20001, '请填写完整信息');
     }
 
     const result = await authService.register({ email, password, nickname });
@@ -37,7 +37,7 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
     const { email, password, deviceToken } = req.body;
 
     if (!email || !password) {
-      throw new AppError({ code: 20001, message: '请填写邮箱和密码' });
+      throw new AppError(20001, '请填写邮箱和密码');
     }
 
     const result = await authService.login({ email, password, deviceToken });
@@ -61,7 +61,7 @@ router.post('/refresh', async (req: Request, res: Response, next: NextFunction) 
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      throw new AppError({ code: 20001, message: '缺少refresh token' });
+      throw new AppError(20001, '缺少refresh token');
     }
 
     const result = await authService.refreshToken(refreshToken);

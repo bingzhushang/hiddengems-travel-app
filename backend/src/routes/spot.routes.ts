@@ -117,18 +117,18 @@ router.get('/:spotId', optionalAuth, async (req: Request, res: Response, next: N
 
 /**
  * @route POST /api/v1/spots/:spotId/favorite
- * @desc 收藏景点
+ * @desc 收藏/取消收藏景点
  */
 router.post('/:spotId/favorite', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { spotId } = req.params;
     const userId = req.user!.userId;
 
-    // TODO: Implement favorite logic
+    const result = await spotService.toggleFavorite(userId, spotId);
 
     res.json({
       code: 0,
-      message: '已收藏',
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -137,18 +137,18 @@ router.post('/:spotId/favorite', authMiddleware, async (req: Request, res: Respo
 
 /**
  * @route DELETE /api/v1/spots/:spotId/favorite
- * @desc 取消收藏
+ * @desc 取消收藏景点
  */
 router.delete('/:spotId/favorite', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { spotId } = req.params;
     const userId = req.user!.userId;
 
-    // TODO: Implement unfavorite logic
+    const result = await spotService.toggleFavorite(userId, spotId);
 
     res.json({
       code: 0,
-      message: '已取消收藏',
+      data: result,
     });
   } catch (error) {
     next(error);

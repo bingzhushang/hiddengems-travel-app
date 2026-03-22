@@ -538,7 +538,7 @@ export class ItineraryService {
       viewCount: itinerary.viewCount,
       favoriteCount: itinerary.favoriteCount,
       copyCount: itinerary.copyCount,
-      items: itinerary.items?.map(this.formatItem) || [],
+      items: itinerary.items?.map((item: any) => this.formatItem(item)) || [],
       createdAt: itinerary.createdAt,
       updatedAt: itinerary.updatedAt,
     };
