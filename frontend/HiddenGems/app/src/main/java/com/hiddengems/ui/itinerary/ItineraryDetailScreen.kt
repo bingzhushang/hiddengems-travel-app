@@ -20,11 +20,11 @@ import com.hiddengems.data.model.ItineraryItem
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItineraryDetailScreen(
-    itineraryId: String
-    onBackClick: () -> Unit
+    itineraryId: String,
+    onBackClick: () -> Unit,
     viewModel: ItineraryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,8 +94,8 @@ fun ItineraryDetailScreen(
             val itinerary = state.itineraries.find { it.id == itineraryId }
             if (itinerary != null) {
                 ItineraryDetailContent(
-                    itinerary = itinerary
-                    selectedDay = selectedDay
+                    itinerary = itinerary,
+                    selectedDay = selectedDay,
                     onDaySelected = { selectedDay = it },
                     onBackClick = onBackClick,
                     onDeleteClick = { showDeleteDialog = true },
