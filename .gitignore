@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Android
+*.apk
+*.aab
+*.iml
+.gradle/
+local.properties
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# iOS
+*.ipa
+*.dSYM.zip
+*.dSYM
+Pods/
+*.xcworkspace
+!default.xcworkspace
+xcuserdata/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.pem
+*.p12
+*.keystore
+google-services.json
+GoogleService-Info.plist
+
+# Claude Code
+.claude/

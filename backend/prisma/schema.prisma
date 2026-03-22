@@ -1,0 +1,351 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// User & Auth
+// ============================================
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  nickname          String
+  avatar            String?
+  phone             String?
+  gender            String?
+  birthday          DateTime?
+  bio               String?
+
+  // Membership
+  membershipType    String    @default("free") @map("membership_type") // free, explorer, pro
+  membershipExpireAt DateTime? @map("membership_expire_at")
+
+  // Stats
+  contributionPoints Int      @default(0) @map("contribution_points")
+  level             Int       @default(1)
+
+  // Preferences
+  preferences       Json      @default("{}")
+
+  // Status
+  status            String    @default("active") // active, banned, deleted
+  emailVerified     Boolean   @default(false) @map("email_verified")
+
+  // Timestamps
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  lastLoginAt       DateTime? @map("last_login_at")
+
+  // Relations
+  reviews           Review[]
+  posts             Post[]
+  itineraries       Itinerary[]
+  favorites         Favorite[]
+  behaviors         Behavior[]
+
+  @@map("users")
+}
+
+// ============================================
+// Spot (景点)
+// ============================================
+
+model Spot {
+  id                String    @id @default(uuid())
+
+  // Basic Info
+  name              String
+  nameEn            String?   @map("name_en")
+  description       String?   @db.Text
+  aiSummary         String?   @map("ai_summary") @db.Text
+
+  // Location
+  country           String
+  province          String?
+  city              String?
+  district          String?
+  address           String?
+  latitude          Float
+  longitude         Float
+
+  // Category & Tags
+  categoryId        String?   @map("category_id")
+  category          Category? @relation(fields: [categoryId], references: [id])
+  tags              String[]
+  themes            String[]
+
+  // Stats
+  rating            Float     @default(0)
+  reviewCount       Int       @default(0) @map("review_count")
+  viewCount         Int       @default(0) @map("view_count")
+  favoriteCount     Int       @default(0) @map("favorite_count")
+
+  // Crowd
+  crowdLevel        String    @default("low") @map("crowd_level") // low, medium, high
+  crowdData         Json?     @map("crowd_data")
+
+  // Visit Info
+  openingHours      Json?     @map("opening_hours")
+  ticketPrice       Float?    @map("ticket_price")
+  ticketInfo        String?   @map("ticket_info") @db.Text
+  suggestedDuration Int?      @map("suggested_duration") // minutes
+  bestSeasons       String[]  @map("best_seasons")
+  bestTimeOfDay     String[]  @map("best_time_of_day")
+
+  // Media
+  coverImage        String?   @map("cover_image")
+  images            Json?
+
+  // Source
+  source            String?   // manual, crawl, user_submit
+  sourceUrl         String?   @map("source_url")
+  verified          Boolean   @default(false)
+  verifierId        String?   @map("verifier_id")
+
+  // Status
+  status            String    @default("active") // active, hidden, deleted
+
+  // Timestamps
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  publishedAt       DateTime? @map("published_at")
+
+  // Relations
+  reviews           Review[]
+  itineraryItems    ItineraryItem[]
+  favorites         Favorite[]
+
+  @@index([country, province, city])
+  @@index([categoryId])
+  @@index([rating])
+  @@map("spots")
+}
+
+model Category {
+  id                String    @id @default(uuid())
+  parentId          String?   @map("parent_id")
+  parent            Category? @relation("CategoryTree", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children          Category[] @relation("CategoryTree")
+
+  name              String
+  nameEn            String?   @map("name_en")
+  slug              String    @unique
+  icon              String?
+  description       String?
+
+  sortOrder         Int       @default(0) @map("sort_order")
+  status            String    @default("active")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  spots             Spot[]
+
+  @@map("categories")
+}
+
+// ============================================
+// Review (评价)
+// ============================================
+
+model Review {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  user              User      @relation(fields: [userId], references: [id])
+  spotId            String    @map("spot_id")
+  spot              Spot      @relation(fields: [spotId], references: [id])
+
+  rating            Int       // 1-5
+  ratingDetails     Json?     @map("rating_details")
+  title             String?
+  content           String?   @db.Text
+  images            Json?
+
+  visitDate         DateTime? @map("visit_date")
+  visitTime        String?   @map("visit_time")
+  crowdLevel        String?   @map("crowd_level")
+
+  helpfulCount      Int       @default(0) @map("helpful_count")
+
+  status            String    @default("active")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([spotId, createdAt])
+  @@map("reviews")
+}
+
+// ============================================
+// Itinerary (行程)
+// ============================================
+
+model Itinerary {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  user              User      @relation(fields: [userId], references: [id])
+
+  title             String
+  description       String?   @db.Text
+  coverImage        String?   @map("cover_image")
+
+  startDate         DateTime  @map("start_date")
+  endDate           DateTime  @map("end_date")
+  daysCount         Int       @map("days_count")
+
+  destination       String?
+  destinationLat    Float?    @map("destination_lat")
+  destinationLng    Float?    @map("destination_lng")
+
+  budgetLevel       String?   @map("budget_level")
+  estimatedBudget   Float?    @map("estimated_budget")
+  travelStyle       String[]  @map("travel_style")
+  transportation    String?
+
+  isAiGenerated     Boolean   @default(false) @map("is_ai_generated")
+  aiParams          Json?     @map("ai_params")
+
+  viewCount         Int       @default(0) @map("view_count")
+  favoriteCount     Int       @default(0) @map("favorite_count")
+  copyCount         Int       @default(0) @map("copy_count")
+
+  status            String    @default("draft") // draft, published, archived
+  isPublic          Boolean   @default(false) @map("is_public")
+
+  offlineDataUrl    String?   @map("offline_data_url")
+  offlineSize       Int?      @map("offline_size")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  publishedAt       DateTime? @map("published_at")
+
+  items             ItineraryItem[]
+
+  @@index([userId])
+  @@index([destination])
+  @@map("itineraries")
+}
+
+model ItineraryItem {
+  id                String    @id @default(uuid())
+  itineraryId       String    @map("itinerary_id")
+  itinerary         Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  dayNumber         Int       @map("day_number")
+  orderInDay        Int       @map("order_in_day")
+
+  spotId            String?   @map("spot_id")
+  spot              Spot?     @relation(fields: [spotId], references: [id])
+  spotName          String?   @map("spot_name")
+
+  plannedDate       DateTime? @map("planned_date")
+  startTime         String?   @map("start_time")
+  endTime           String?   @map("end_time")
+  duration          Int?      // minutes
+
+  itemType          String    @map("item_type") // spot, meal, accommodation, transport, note
+  customTitle       String?   @map("custom_title")
+  customContent     String?   @map("custom_content") @db.Text
+
+  estimatedCost     Float?    @map("estimated_cost")
+  notes             String?   @db.Text
+
+  status            String    @default("planned") // planned, visited, skipped
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([itineraryId, dayNumber, orderInDay])
+  @@map("itinerary_items")
+}
+
+// ============================================
+// Post (社区帖子)
+// ============================================
+
+model Post {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  user              User      @relation(fields: [userId], references: [id])
+
+  title             String?
+  content           String    @db.Text
+  postType          String    @map("post_type") // article, moment, question
+
+  spotId            String?   @map("spot_id")
+  spotIds           String[]  @map("spot_ids")
+
+  images            Json?
+  videoUrl          String?   @map("video_url")
+
+  tags              String[]
+
+  likeCount         Int       @default(0) @map("like_count")
+  commentCount      Int       @default(0) @map("comment_count")
+  shareCount        Int       @default(0) @map("share_count")
+
+  status            String    @default("active")
+  isFeatured        Boolean   @default(false) @map("is_featured")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([spotId])
+  @@map("posts")
+}
+
+// ============================================
+// Favorite (收藏)
+// ============================================
+
+model Favorite {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  user              User      @relation(fields: [userId], references: [id])
+
+  targetType        String    @map("target_type") // spot, itinerary, post
+  targetId          String    @map("target_id")
+
+  spotId            String?   @map("spot_id")
+  spot              Spot?     @relation(fields: [spotId], references: [id])
+
+  folderId          String?   @map("folder_id")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@unique([userId, targetType, targetId])
+  @@map("favorites")
+}
+
+// ============================================
+// Behavior (用户行为日志)
+// ============================================
+
+model Behavior {
+  id                String    @id @default(uuid())
+  userId            String?   @map("user_id")
+  user              User?     @relation(fields: [userId], references: [id])
+  sessionId         String?   @map("session_id")
+
+  action            String    // view, favorite, share, visit, search
+
+  targetType        String?   @map("target_type")
+  targetId          String?   @map("target_id")
+
+  context           Json?
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("behaviors")
+}

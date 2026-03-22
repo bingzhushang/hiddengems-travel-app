@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">秘境探索</string>
+    <string name="app_name_en">HiddenGems</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">首页</string>
+    <string name="nav_discover">发现</string>
+    <string name="nav_itinerary">行程</string>
+    <string name="nav_community">社区</string>
+    <string name="nav_profile">我的</string>
+
+    <!-- Home -->
+    <string name="home_ai_recommend">AI 为你推荐</string>
+    <string name="home_nearby">附近小众景点</string>
+    <string name="home_themes">热门主题</string>
+    <string name="home_refresh">换一批</string>
+    <string name="home_view_all">查看全部</string>
+
+    <!-- Search -->
+    <string name="search_hint">搜索目的地、景点...</string>
+    <string name="search_voice">语音搜索</string>
+
+    <!-- Spot -->
+    <string name="spot_crowd_low">人流少</string>
+    <string name="spot_crowd_medium">人流适中</string>
+    <string name="spot_crowd_high">人流较多</string>
+    <string name="spot_favorite">收藏</string>
+    <string name="spot_navigate">开始导航</string>
+    <string name="spot_add_itinerary">加入行程</string>
+
+    <!-- AI -->
+    <string name="ai_planner_title">AI 行程规划</string>
+    <string name="ai_planner_desc">输入需求，一键生成小众路线</string>
+    <string name="ai_planner_destination">你想去哪里？</string>
+    <string name="ai_planner_days">旅行天数</string>
+    <string name="ai_planner_budget">预算水平</string>
+    <string name="ai_planner_style">你喜欢什么？</string>
+    <string name="ai_planner_crowd">避开人流密集的景点</string>
+    <string name="ai_planner_generate">AI 生成行程</string>
+
+    <!-- Auth -->
+    <string name="auth_login">登录</string>
+    <string name="auth_register">注册</string>
+    <string name="auth_email">邮箱</string>
+    <string name="auth_password">密码</string>
+    <string name="auth_nickname">昵称</string>
+    <string name="auth_forgot_password">忘记密码？</string>
+    <string name="auth_no_account">还没有账号？</string>
+    <string name="auth_has_account">已有账号？</string>
+
+    <!-- Profile -->
+    <string name="profile_membership">会员中心</string>
+    <string name="profile_favorites">我的收藏</string>
+    <string name="profile_footprint">足迹地图</string>
+    <string name="profile_settings">设置</string>
+    <string name="profile_about">关于我们</string>
+    <string name="profile_logout">退出登录</string>
+
+    <!-- Common -->
+    <string name="common_loading">加载中...</string>
+    <string name="common_error">加载失败</string>
+    <string name="common_retry">重试</string>
+    <string name="common_confirm">确认</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_save">保存</string>
+</resources>
