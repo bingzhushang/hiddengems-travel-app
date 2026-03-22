@@ -17,6 +17,7 @@ import androidx.navigation.navArgument
 import com.hiddengems.ui.home.HomeScreen
 import com.hiddengems.ui.discover.DiscoverScreen
 import com.hiddengems.ui.itinerary.ItineraryScreen
+import com.hiddengems.ui.itinerary.ItineraryDetailScreen
 import com.hiddengems.ui.community.CommunityScreen
 import com.hiddengems.ui.profile.ProfileScreen
 import com.hiddengems.ui.spot.SpotDetailScreen
