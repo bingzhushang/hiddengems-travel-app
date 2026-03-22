@@ -39,15 +39,17 @@ class AIPlannerViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isGenerating = true)
 
             // Simulate API call
-            delay(30000 // Simulate successful generation
+            delay(3000) // 3 seconds for better UX
+
+            // Simulate successful generation
             val mockItinerary = Itinerary(
                 id = "generated-${System.currentTimeMillis()}",
                 userId = "current-user",
                 title = "${destination}探索之旅",
                 description = "AI 为您生成的专属行程，包含您旅行偏好的精华景点",
                 coverImage = "https://picsum.photos/seed/${destination.hashCode()}/800/400",
-                startDate = parseDate(startDate),
-                endDate = parseDate(endDate),
+                startDate = startDate,
+                endDate = endDate,
                 daysCount = calculateDays(startDate, endDate),
                 destination = destination,
                 isAiGenerated = true,
@@ -67,22 +69,18 @@ class AIPlannerViewModel @Inject constructor(
         }
     }
 
-    private fun parseDate(dateString: String): java.util.Date {
-        return try {
-            val format = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-            format.parse(dateString)
-        } catch (e: Exception) {
-            java.util.Date()
-        }
-    }
-
     private fun calculateDays(startDate: String, endDate: String): Int {
         return try {
-            val start = parseDate(startDate)
-            val end = parseDate(endDate)
-            val diff = (end.time - start.time)
-            val days = diff / (1000 * 60 * 60 * 24)
-            days + 1
+            val format = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            val start = format.parse(startDate)
+            val end = format.parse(endDate)
+            if (start != null && end != null) {
+                val diff = end.time - start.time
+                val days = diff / (1000 * 60 * 60 * 24)
+                days.toInt() + 1
+            } else {
+                1
+            }
         } catch (e: Exception) {
             1
         }
