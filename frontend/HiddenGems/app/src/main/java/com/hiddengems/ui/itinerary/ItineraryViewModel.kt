@@ -50,6 +50,22 @@ class ItineraryViewModel @Inject constructor(
         }
     }
 
+    fun loadItinerary(itineraryId: String) {
+        viewModelScope.launch {
+            _uiState.value = ItineraryUiState.Loading
+
+            val result = itineraryRepository.getItinerary(itineraryId)
+            result.fold(
+                onSuccess = { itinerary ->
+                    _uiState.value = ItineraryUiState.Success(listOf(itinerary))
+                },
+                onFailure = { exception ->
+                    _uiState.value = ItineraryUiState.Error(exception.message ?: "Failed to load itinerary")
+                }
+            )
+        }
+    }
+
     fun createItinerary(title: String, startDate: String, endDate: String, destination: String? = null) {
         viewModelScope.launch {
             _isLoading.value = true
