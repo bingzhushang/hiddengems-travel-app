@@ -36,14 +36,24 @@ data class Pagination(
 @Serializable
 data class User(
     val id: String,
-    val email: String,
+    val email: String? = null,
     val nickname: String,
     val avatar: String? = null,
-    @SerialName("membershipType") val membershipType: String,
+    val bio: String? = null,
+    @SerialName("membershipType") val membershipType: String = "free",
     @SerialName("membershipExpireAt") val membershipExpireAt: String? = null,
-    @SerialName("contributionPoints") val contributionPoints: Int,
-    val level: Int,
-    val preferences: UserPreferences? = null
+    @SerialName("contributionPoints") val contributionPoints: Int = 0,
+    val level: Int = 1,
+    val preferences: UserPreferences? = null,
+    val stats: UserStats? = null
+)
+
+@Serializable
+data class UserStats(
+    @SerialName("favoriteCount") val favoriteCount: Int = 0,
+    @SerialName("itineraryCount") val itineraryCount: Int = 0,
+    @SerialName("visitedCount") val visitedCount: Int = 0,
+    @SerialName("reviewCount") val reviewCount: Int = 0
 )
 
 @Serializable
@@ -79,13 +89,19 @@ data class RegisterRequest(
 data class Spot(
     val id: String,
     val name: String,
+    @SerialName("nameEn") val nameEn: String? = null,
+    val description: String? = null,
     @SerialName("coverImage") val coverImage: String? = null,
-    val rating: Float,
+    val rating: Float = 0f,
+    @SerialName("reviewCount") val reviewCount: Int = 0,
     val distance: Float? = null,
-    @SerialName("crowdLevel") val crowdLevel: String,
-    val tags: List<String>,
+    @SerialName("crowdLevel") val crowdLevel: String = "low",
+    val tags: List<String> = emptyList(),
     val city: String? = null,
     val province: String? = null,
+    val address: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     @SerialName("aiReason") val aiReason: String? = null
 )
 
@@ -169,38 +185,39 @@ data class Itinerary(
     val title: String,
     val description: String? = null,
     @SerialName("coverImage") val coverImage: String? = null,
-    @SerialName("startDate") val startDate: String,
-    @SerialName("endDate") val endDate: String,
-    @SerialName("daysCount") val daysCount: Int,
+    @SerialName("startDate") val startDate: String? = null,
+    @SerialName("endDate") val endDate: String? = null,
+    @SerialName("daysCount") val daysCount: Int = 1,
     val destination: String? = null,
     @SerialName("budgetLevel") val budgetLevel: String? = null,
     @SerialName("estimatedBudget") val estimatedBudget: Float? = null,
-    @SerialName("travelStyle") val travelStyle: List<String>,
-    @SerialName("isAiGenerated") val isAiGenerated: Boolean,
-    val status: String,
-    @SerialName("isPublic") val isPublic: Boolean,
-    @SerialName("viewCount") val viewCount: Int,
-    @SerialName("favoriteCount") val favoriteCount: Int,
-    @SerialName("copyCount") val copyCount: Int,
-    val items: List<ItineraryItem>
+    @SerialName("travelStyle") val travelStyle: List<String> = emptyList(),
+    @SerialName("isAiGenerated") val isAiGenerated: Boolean? = null,
+    val status: String = "draft",
+    @SerialName("isPublic") val isPublic: Boolean = false,
+    @SerialName("viewCount") val viewCount: Int = 0,
+    @SerialName("favoriteCount") val favoriteCount: Int = 0,
+    @SerialName("copyCount") val copyCount: Int = 0,
+    val items: List<ItineraryItem> = emptyList(),
+    val user: User? = null
 )
 
 @Serializable
 data class ItineraryItem(
     val id: String,
     @SerialName("dayNumber") val dayNumber: Int,
-    @SerialName("orderInDay") val orderInDay: Int,
+    @SerialName("orderInDay") val orderInDay: Int = 0,
     val spot: SpotReference? = null,
     @SerialName("spotName") val spotName: String? = null,
     @SerialName("startTime") val startTime: String? = null,
     @SerialName("endTime") val endTime: String? = null,
     val duration: Int? = null,
-    @SerialName("itemType") val itemType: String,
+    @SerialName("itemType") val itemType: String = "spot",
     @SerialName("customTitle") val customTitle: String? = null,
     @SerialName("customContent") val customContent: String? = null,
     @SerialName("estimatedCost") val estimatedCost: Float? = null,
     val notes: String? = null,
-    val status: String
+    val status: String = "planned"
 )
 
 @Serializable

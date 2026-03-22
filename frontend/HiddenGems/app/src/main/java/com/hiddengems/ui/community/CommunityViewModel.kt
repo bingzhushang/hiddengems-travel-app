@@ -3,6 +3,7 @@ package com.hiddengems.ui.community
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hiddengems.data.model.Itinerary
+import com.hiddengems.data.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,6 +71,24 @@ class CommunityViewModel @Inject constructor(
                     viewCount = 2341,
                     favoriteCount = 156,
                     copyCount = 45
+                ),
+                createMockItinerary(
+                    id = "comm-4",
+                    title = "江南水乡慢游",
+                    userName = "文艺青年",
+                    avatarUrl = "https://picsum.photos/seed/user4/100/100",
+                    viewCount = 678,
+                    favoriteCount = 42,
+                    copyCount = 8
+                ),
+                createMockItinerary(
+                    id = "comm-5",
+                    title = "新疆自驾15天",
+                    userName = "自驾达人",
+                    avatarUrl = "https://picsum.photos/seed/user5/100/100",
+                    viewCount = 3456,
+                    favoriteCount = 234,
+                    copyCount = 67
                 )
             )
 
@@ -98,7 +117,7 @@ class CommunityViewModel @Inject constructor(
             id = id,
             userId = "user-$id",
             title = title,
-            description = "这是一次难忘的旅行体验...",
+            description = "这是一次难忘的旅行体验，推荐给大家！精心规划的路线，带你发现小众秘境。",
             coverImage = "https://picsum.photos/seed/$id/400/300",
             startDate = java.util.Date(),
             endDate = java.util.Date(),
@@ -111,7 +130,12 @@ class CommunityViewModel @Inject constructor(
             favoriteCount = favoriteCount,
             copyCount = copyCount,
             travelStyle = listOf("自然", "人文"),
-            items = emptyList()
+            items = emptyList(),
+            user = User(
+                id = "user-$id",
+                nickname = userName,
+                avatar = avatarUrl
+            )
         )
     }
 }
