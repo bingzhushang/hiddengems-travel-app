@@ -24,7 +24,7 @@ import com.hiddengems.data.model.Spot
 @Composable
 fun DiscoverScreen(
     onSpotClick: (String) -> Unit,
-    viewModel: DiscoverViewModel = viewModel()
+    viewModel: DiscoverViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
