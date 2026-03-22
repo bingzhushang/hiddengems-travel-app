@@ -13,15 +13,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AIPlannerScreen(
     onBackClick: () -> Unit,
-    onItineraryGenerated: () -> Unit
+    onItineraryGenerated: () -> Unit,
+    viewModel: AIPlannerViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     // Form state
     var destination by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf("") }
@@ -32,9 +36,7 @@ fun AIPlannerScreen(
     var transportation by remember { mutableStateOf("self_drive") }
 
     // UI state
-    var isGenerating by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
-    var showDatePicker by remember { mutableStateOf<DatePickerType?>(null) }
     val travelStyles = listOf("自然", "人文", "美食", "摄影", "亲子", "户外", "购物", "休闲")
     val budgetLevels = listOf(
         "economy" to "经济",
@@ -48,21 +50,27 @@ fun AIPlannerScreen(
     )
     val transportations = listOf(
         "self_drive" to "自驾",
-        "public" to "公共交通"
+        "public" to "公共交通",
         "mixed" to "混合"
     )
 
+    // Show success dialog when itinerary is generated
+    LaunchedEffect(uiState.generatedItinerary) {
+        if (uiState.generatedItinerary != null) {
+            showSuccessDialog = true
+        }
+    }
+
     Scaffold(
         topBar = {
-                TopAppBar(
-                    title = { Text("AI 行程规划") },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                        }
+            TopAppBar(
+                title = { Text("AI 行程规划") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
-                )
-            }
+                }
+            )
         }
     ) { padding ->
         Column(
@@ -102,7 +110,7 @@ fun AIPlannerScreen(
                             text = "告诉我你的旅行偏好，AI为你定制专属行程",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                        }
+                        )
                     }
                 }
             }
@@ -141,7 +149,7 @@ fun AIPlannerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                budgetLevels.forEach { (value, label ->
+                budgetLevels.forEach { (value, label) ->
                     FilterChip(
                         selected = budgetLevel == value,
                         onClick = { budgetLevel = value },
@@ -161,7 +169,7 @@ fun AIPlannerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                crowdPreferences.forEach { (value, label ->
+                crowdPreferences.forEach { (value, label) ->
                     FilterChip(
                         selected = crowdPreference == value,
                         onClick = { crowdPreference = value },
@@ -207,7 +215,7 @@ fun AIPlannerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                transportations.forEach { (value, label ->
+                transportations.forEach { (value, label) ->
                     FilterChip(
                         selected = transportation == value,
                         onClick = { transportation = value },
@@ -216,58 +224,85 @@ fun AIPlannerScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp)
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Generate Button
             Button(
                 onClick = {
                     if (destination.isNotBlank() && startDate.isNotBlank() && endDate.isNotBlank()) {
-                        generateItinerary()
+                        viewModel.generateItinerary(
+                            destination = destination,
+                            startDate = startDate,
+                            endDate = endDate,
+                            budgetLevel = budgetLevel,
+                            crowdPreference = crowdPreference,
+                            travelStyles = selectedStyles.toList(),
+                            transportation = transportation
+                        )
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isGenerating
+                enabled = !uiState.isGenerating
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (isGenerating) {
-                        CircularProgressIndicator()
+                    if (uiState.isGenerating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     Text(
-                        text = "生成行程..."
+                        text = if (uiState.isGenerating) "生成行程..." else "生成行程",
                         style = MaterialTheme.typography.bodyMedium
                     )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "生成行程",
-                        fontWeight = FontWeight.Bold
-                    )
                 }
+            }
+
+            // Error message
+            uiState.error?.let { error ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }
 
-    if (showSuccessDialog) {
+    // Success dialog
+    if (showSuccessDialog && uiState.generatedItinerary != null) {
         AlertDialog(
-            onDismissRequest = { showSuccessDialog = false },
+            onDismissRequest = {
+                showSuccessDialog = false
+                viewModel.clearGeneratedItinerary()
+            },
             title = { Text("行程生成成功!") },
             text = {
-                Text(
-                    text = "AI已为您生成了专属行程,是否立即查看?",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Column {
+                    Text(
+                        text = "AI已为您生成了专属行程: ${uiState.generatedItinerary!!.title}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "目的地: ${uiState.generatedItinerary!!.destination}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "天数: ${uiState.generatedItinerary!!.daysCount}天",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showSuccessDialog = false
+                        viewModel.clearGeneratedItinerary()
                         onItineraryGenerated()
                     }
                 ) {
@@ -275,7 +310,12 @@ fun AIPlannerScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showSuccessDialog = false }) {
+                TextButton(
+                    onClick = {
+                        showSuccessDialog = false
+                        viewModel.clearGeneratedItinerary()
+                    }
+                ) {
                     Text("关闭")
                 }
             }
@@ -287,7 +327,7 @@ fun AIPlannerScreen(
 private fun DateRangeInput(
     startDate: String,
     endDate: String,
-    onStartDateChange: (String) -> Unit
+    onStartDateChange: (String) -> Unit,
     onEndDateChange: (String) -> Unit
 ) {
     var startError by remember { mutableStateOf<String?>(null) }
@@ -301,65 +341,43 @@ private fun DateRangeInput(
         OutlinedTextField(
             value = startDate,
             onValueChange = {
-                val parsed = try {
+                try {
                     dateFormat.parse(it)
                     onStartDateChange(it)
                     startError = null
                 } catch (e: Exception) {
+                    onStartDateChange(it)
                     startError = "请输入有效日期 (YYYY-MM-DD)"
                 }
             },
             label = { Text("开始日期") },
             placeholder = { Text("YYYY-MM-DD") },
             isError = startError != null,
+            supportingText = startError?.let { { Text(it) } },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.weight(1f)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = endDate,
             onValueChange = {
-                val parsed = try {
+                try {
                     dateFormat.parse(it)
                     onEndDateChange(it)
                     endError = null
                 } catch (e: Exception) {
+                    onEndDateChange(it)
                     endError = "请输入有效日期 (YYYY-MM-DD)"
                 }
             },
             label = { Text("结束日期") },
             placeholder = { Text("YYYY-MM-DD") },
             isError = endError != null,
+            supportingText = endError?.let { { Text(it) } },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.weight(1f)
         )
-    }
-}
-
-enum class DatePickerType {
-    START,
-    END
-}
-
-private fun generateItinerary(
-    destination: String,
-    startDate: String,
-    endDate: String
-    budgetLevel: String
-    crowdPreference: String
-    travelStyles: List<String>
-    transportation: String,
-    onGeneratingChange: (Boolean) -> Unit,
-    onSuccess: () -> Unit
-) {
-    // Simulate API call
-    LaunchedEffect(destination, startDate, endDate, budgetLevel, crowdPreference, travelStyles, transportation) {
-        kotlinx.coroutines.delay(2000)
-        isGenerating = true
-        onSuccess()
     }
 }

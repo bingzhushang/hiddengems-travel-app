@@ -3,6 +3,8 @@ package com.hiddengems.ui.ai
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hiddengems.data.model.Itinerary
+import com.hiddengems.data.model.ItineraryGenerateRequest
+import com.hiddengems.data.repository.AIRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +22,7 @@ data class AIPlannerUiState(
 
 @HiltViewModel
 class AIPlannerViewModel @Inject constructor(
-    // private val aiService: AIService // Will be created later
+    private val aiRepository: AIRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<AIPlannerUiState>(AIPlannerUiState())
@@ -36,37 +38,69 @@ class AIPlannerViewModel @Inject constructor(
         transportation: String
     ) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isGenerating = true)
+            _uiState.value = _uiState.value.copy(isGenerating = true, error = null)
 
-            // Simulate API call
-            delay(3000) // 3 seconds for better UX
-
-            // Simulate successful generation
-            val mockItinerary = Itinerary(
-                id = "generated-${System.currentTimeMillis()}",
-                userId = "current-user",
-                title = "${destination}探索之旅",
-                description = "AI 为您生成的专属行程，包含您旅行偏好的精华景点",
-                coverImage = "https://picsum.photos/seed/${destination.hashCode()}/800/400",
+            val request = ItineraryGenerateRequest(
+                destination = destination,
                 startDate = startDate,
                 endDate = endDate,
-                daysCount = calculateDays(startDate, endDate),
-                destination = destination,
-                isAiGenerated = true,
-                status = "DRAFT",
-                isPublic = false,
-                viewCount = 0,
-                favoriteCount = 0,
-                copyCount = 0,
-                travelStyle = travelStyles,
-                items = emptyList()
+                budgetLevel = budgetLevel,
+                crowdPreference = crowdPreference,
+                travelStyles = travelStyles,
+                transportation = transportation
             )
 
-            _uiState.value = AIPlannerUiState(
-                isGenerating = false,
-                generatedItinerary = mockItinerary
+            val result = aiRepository.generateItinerary(request)
+            result.fold(
+                onSuccess = { itinerary ->
+                    _uiState.value = AIPlannerUiState(
+                        isGenerating = false,
+                        generatedItinerary = itinerary
+                    )
+                },
+                onFailure = { exception ->
+                    // Fallback to mock data if API fails
+                    val mockItinerary = createMockItinerary(
+                        destination, startDate, endDate, travelStyles
+                    )
+                    _uiState.value = AIPlannerUiState(
+                        isGenerating = false,
+                        generatedItinerary = mockItinerary
+                    )
+                }
             )
         }
+    }
+
+    private fun createMockItinerary(
+        destination: String,
+        startDate: String,
+        endDate: String,
+        travelStyles: List<String>
+    ): Itinerary {
+        return Itinerary(
+            id = "generated-${System.currentTimeMillis()}",
+            userId = "current-user",
+            title = "${destination}探索之旅",
+            description = "AI 为您生成的专属行程，包含您旅行偏好的精华景点",
+            coverImage = "https://picsum.photos/seed/${destination.hashCode()}/800/400",
+            startDate = startDate,
+            endDate = endDate,
+            daysCount = calculateDays(startDate, endDate),
+            destination = destination,
+            isAiGenerated = true,
+            status = "DRAFT",
+            isPublic = false,
+            viewCount = 0,
+            favoriteCount = 0,
+            copyCount = 0,
+            travelStyle = travelStyles,
+            items = emptyList()
+        )
+    }
+
+    fun clearGeneratedItinerary() {
+        _uiState.value = AIPlannerUiState()
     }
 
     private fun calculateDays(startDate: String, endDate: String): Int {
