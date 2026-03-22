@@ -104,7 +104,7 @@ describe('SpotService', () => {
       const result = await spotService.getRecommendations(userId, lat, lng, limit);
 
       // Assert
-      expect(result).toHaveLength(expect.any(Number));
+      expect(result.length).toBeGreaterThan(0);
       expect(result[0]).toHaveProperty('id');
       expect(result[0]).toHaveProperty('name');
       expect(result[0]).toHaveProperty('rating');
