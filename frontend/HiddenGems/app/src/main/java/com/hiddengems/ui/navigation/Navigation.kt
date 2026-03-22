@@ -126,13 +126,23 @@ fun HiddenGemsNavigation(
             }
 
             composable(Screen.Community.route) {
-                CommunityScreen()
+                CommunityScreen(
+                    onItineraryClick = { itineraryId ->
+                        navController.navigate(Screen.ItineraryDetail.createRoute(itineraryId))
+                    }
+                )
             }
 
             composable(Screen.Profile.route) {
                 ProfileScreen(
                     onLoginClick = {
                         navController.navigate(Screen.Login.route)
+                    },
+                    onFavoritesClick = {
+                        // TODO: Navigate to favorites
+                    },
+                    onItinerariesClick = {
+                        navController.navigate(Screen.Itinerary.route)
                     }
                 )
             }
@@ -205,86 +215,6 @@ fun HiddenGemsNavigation(
                     }
                 )
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AIPlannerScreen(
-    onBackClick: () -> Unit,
-    onItineraryGenerated: () -> Unit
-) {
-    // Placeholder AI Planner Screen
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("AI 行程规划") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.AutoAwesome,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "AI 行程规划功能",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "即将推出",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ItineraryDetailScreen(
-    itineraryId: String,
-    onBackClick: () -> Unit
-) {
-    // Placeholder Itinerary Detail Screen
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("行程详情") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "行程ID: $itineraryId",
-                style = MaterialTheme.typography.titleMedium
-            )
         }
     }
 }
