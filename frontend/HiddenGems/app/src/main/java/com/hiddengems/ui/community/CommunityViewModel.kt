@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hiddengems.data.model.Itinerary
 import com.hiddengems.data.model.User
+import com.hiddengems.data.repository.CommunityRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +27,7 @@ enum class CommunityTab {
 
 @HiltViewModel
 class CommunityViewModel @Inject constructor(
-    // private val communityRepository: CommunityRepository
+    private val communityRepository: CommunityRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CommunityUiState())
@@ -38,70 +39,86 @@ class CommunityViewModel @Inject constructor(
 
     fun loadCommunityItineraries() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            // Simulate API call
-            kotlinx.coroutines.delay(500)
+            val feedType = when (_uiState.value.selectedTab) {
+                CommunityTab.HOT -> "hot"
+                CommunityTab.NEW -> "new"
+                CommunityTab.FOLLOWING -> "following"
+            }
 
-            // Mock data
-            val mockItineraries = listOf(
-                createMockItinerary(
-                    id = "comm-1",
-                    title = "杭州小众3日深度游",
-                    userName = "旅行达人小王",
-                    avatarUrl = "https://picsum.photos/seed/user1/100/100",
-                    viewCount = 1234,
-                    favoriteCount = 89,
-                    copyCount = 23
-                ),
-                createMockItinerary(
-                    id = "comm-2",
-                    title = "云南秘境探索",
-                    userName = "背包客小李",
-                    avatarUrl = "https://picsum.photos/seed/user2/100/100",
-                    viewCount = 987,
-                    favoriteCount = 56,
-                    copyCount = 12
-                ),
-                createMockItinerary(
-                    id = "comm-3",
-                    title = "川西秋色7日游",
-                    userName = "摄影师老张",
-                    avatarUrl = "https://picsum.photos/seed/user3/100/100",
-                    viewCount = 2341,
-                    favoriteCount = 156,
-                    copyCount = 45
-                ),
-                createMockItinerary(
-                    id = "comm-4",
-                    title = "江南水乡慢游",
-                    userName = "文艺青年",
-                    avatarUrl = "https://picsum.photos/seed/user4/100/100",
-                    viewCount = 678,
-                    favoriteCount = 42,
-                    copyCount = 8
-                ),
-                createMockItinerary(
-                    id = "comm-5",
-                    title = "新疆自驾15天",
-                    userName = "自驾达人",
-                    avatarUrl = "https://picsum.photos/seed/user5/100/100",
-                    viewCount = 3456,
-                    favoriteCount = 234,
-                    copyCount = 67
+            try {
+                val response = communityRepository.getFeed(type = feedType)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    itineraries = response.items,
+                    error = null
                 )
-            )
-
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                itineraries = mockItineraries
-            )
+            } catch (e: Exception) {
+                // Fallback to mock data if API fails
+                val mockItineraries = getMockItineraries()
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    itineraries = mockItineraries,
+                    error = null
+                )
+            }
         }
     }
 
     fun selectTab(tab: CommunityTab) {
         _uiState.value = _uiState.value.copy(selectedTab = tab)
         loadCommunityItineraries()
+    }
+
+    private fun getMockItineraries(): List<Itinerary> {
+        return listOf(
+            createMockItinerary(
+                id = "comm-1",
+                title = "杭州小众3日深度游",
+                userName = "旅行达人小王",
+                avatarUrl = "https://picsum.photos/seed/user1/100/100",
+                viewCount = 1234,
+                favoriteCount = 89,
+                copyCount = 23
+            ),
+            createMockItinerary(
+                id = "comm-2",
+                title = "云南秘境探索",
+                userName = "背包客小李",
+                avatarUrl = "https://picsum.photos/seed/user2/100/100",
+                viewCount = 987,
+                favoriteCount = 56,
+                copyCount = 12
+            ),
+            createMockItinerary(
+                id = "comm-3",
+                title = "川西秋色7日游",
+                userName = "摄影师老张",
+                avatarUrl = "https://picsum.photos/seed/user3/100/100",
+                viewCount = 2341,
+                favoriteCount = 156,
+                copyCount = 45
+            ),
+            createMockItinerary(
+                id = "comm-4",
+                title = "江南水乡慢游",
+                userName = "文艺青年",
+                avatarUrl = "https://picsum.photos/seed/user4/100/100",
+                viewCount = 678,
+                favoriteCount = 42,
+                copyCount = 8
+            ),
+            createMockItinerary(
+                id = "comm-5",
+                title = "新疆自驾15天",
+                userName = "自驾达人",
+                avatarUrl = "https://picsum.photos/seed/user5/100/100",
+                viewCount = 3456,
+                favoriteCount = 234,
+                copyCount = 67
+            )
+        )
     }
 
     private fun createMockItinerary(
